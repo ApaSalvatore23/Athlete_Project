@@ -5,33 +5,34 @@ import math
 
 class Workout:
     def __init__(self):
-        self.k_min = 48
+        self.k_min = 48  # 50=intermediate athlete, 55=explosive athlete
         self.k_max = 53
 
     def _calculate_1rm(self, load, reps):
+        # La tua formula originale (Media di Epley, Brzycki e Lombardi)
         epley = load * (1 + 0.0333 * reps)
         brzycki = load * (36 / (37 - reps))
         lombardi = load * math.pow(reps, 0.10)
         return (epley + brzycki + lombardi) / 3
 
-# Configurazione Streamlit
+# --- CONFIGURAZIONE INTERFACCIA ---
 st.set_page_config(page_title="Workout Analyzer", layout="wide")
 st.title("🏋️ Workout Performance Analyzer")
 
 user_workout = Workout()
 
-# Sidebar per input comuni
-st.sidebar.header("Dati Utente")
-body_weight = st.sidebar.number_input("Peso Corporeo (kg)", min_value=1.0, value=75.0)
+# Sidebar per input costanti
+st.sidebar.header("Dati Personali")
+body_weight = st.sidebar.number_input("Peso Corporeo (kg):", min_value=1.0, value=75.0, step=0.1)
 
 menu = st.sidebar.selectbox("Cosa vuoi calcolare?", 
     ["Squat 1RM", "Potential Vertical Jump", "Bench Press 1RM", "Power"])
 
-# --- SEZIONE SQUAT ---
+# --- 1. SQUAT ---
 if menu == "Squat 1RM":
-    st.header("Analisi Squat")
-    load = st.number_input("Inserisci il carico dello Squat (kg):", value=100.0)
-    reps = st.number_input("Inserisci le ripetizioni:", min_value=1, value=5)
+    st.header("Analisi Massimale Squat")
+    load = st.number_input("Carico Squat (kg):", min_value=0.0, value=100.0, step=2.5)
+    reps = st.number_input("Ripetizioni Squat:", min_value=1, value=5)
     
     if st.button("Calcola"):
         max_weight = user_workout._calculate_1rm(load, reps)
@@ -39,13 +40,13 @@ if menu == "Squat 1RM":
         st.metric("Estimated Squat 1RM", f"{round(max_weight)} kg")
         st.write(f"Sollevi circa **{round(relative_strength * 10)/10}** volte il tuo peso corporeo.")
 
-# --- SEZIONE JUMP (CON GRAFICI) ---
+# --- 2. JUMP (I TUOI GRAFICI ORIGINALI) ---
 elif menu == "Potential Vertical Jump":
-    st.header("Potential Vertical Jump")
+    st.header("Potential Vertical Jump Analysis")
     col1, col2 = st.columns(2)
     with col1:
         standing_reach = st.number_input("Standing Reach (cm):", value=220.0)
-        current_jump = st.number_input("Salto attuale (cm):", value=50.0)
+        current_jump = st.number_input("Salto Verticale Attuale (cm):", value=50.0)
     with col2:
         load = st.number_input("Carico Squat (kg):", value=100.0)
         reps = st.number_input("Ripetizioni Squat:", value=5)
@@ -56,13 +57,13 @@ elif menu == "Potential Vertical Jump":
         max_jump = user_workout.k_max * (max_weight / body_weight)
         relative_strength = round((max_weight / body_weight) * 10) / 10
 
-        st.subheader(f"Potenziale: {round(min_jump)}-{round(max_jump)} cm")
-        st.write(f"Reach potenziale: {round(standing_reach + min_jump)}-{round(standing_reach + max_jump)} cm")
+        st.subheader(f"Potenziale Verticale: {round(min_jump)}-{round(max_jump)} cm")
+        st.write(f"Altezza Reach Potenziale: {round(standing_reach + min_jump)}-{round(standing_reach + max_jump)} cm")
 
-        # --- GRAFICI  ---
+        # Generazione Grafici
         fig = plt.figure(figsize=(8,10))
         
-        # Subplot 1
+        # Subplot 1: Performance Levels
         plt.subplot(2,1,1)
         plt.xlim(0,3)
         plt.ylim(0,120)
@@ -79,7 +80,7 @@ elif menu == "Potential Vertical Jump":
         plt.grid()
         plt.legend()
 
-        # Subplot 2
+        # Subplot 2: Jump vs Strength (I tuoi fill colorati)
         plt.subplot(2,1,2)
         plt.xlim(0, 2.5)
         plt.ylim(0, 120)
@@ -96,25 +97,25 @@ elif menu == "Potential Vertical Jump":
         plt.tight_layout()
         st.pyplot(fig)
 
-# --- SEZIONE BENCH PRESS ---
+# --- 3. BENCH PRESS ---
 elif menu == "Bench Press 1RM":
-    st.header("Analisi Bench Press")
-    load = st.number_input("Carico Bench Press (kg):", value=80.0)
+    st.header("Analisi Massimale Panca Piana")
+    load = st.number_input("Carico Bench Press (kg):", min_value=0.0, value=80.0, step=2.5)
     reps = st.number_input("Ripetizioni Bench Press:", min_value=1, value=5)
     
-    if st.button("Calcola"):
+    if st.button("Calcola Panca"):
         max_weight = user_workout._calculate_1rm(load, reps)
         relative_strength = max_weight / body_weight
         st.metric("Estimated Bench Press 1RM", f"{round(max_weight)} kg")
         st.write(f"Sollevi circa **{round(relative_strength * 10)/10}** volte il tuo peso corporeo.")
 
-# --- SEZIONE POWER (GRAFICI ORIGINALI) ---
+# --- 4. POWER (I TUOI GRAFICI ORIGINALI) ---
 elif menu == "Power":
-    st.header("Calcolo Potenza")
-    load = st.number_input("Carico Squat (kg):", value=80.0)
-    time = st.number_input("Tempo fase concentrica (s):", value=0.5, step=0.1)
+    st.header("Analisi della Potenza")
+    load = st.number_input("Carico Squat utilizzato (kg):", value=80.0)
+    time = st.number_input("Tempo fase concentrica (secondi):", value=0.5, step=0.1)
 
-    if st.button("Calcola Potenza"):
+    if st.button("Calcola Livello Potenza"):
         relative_strength = round((load / body_weight) * 10) / 10
         power_index = relative_strength / time
 
@@ -125,9 +126,9 @@ elif menu == "Power":
 
         st.success(f"Il tuo Power Level è: {power_level}")
 
-        # --- GRAFICI ---
         fig = plt.figure(figsize=(8,10))
 
+        # Subplot 1: Power Levels
         plt.subplot(2,1,1)
         plt.xlim(0,3)
         plt.ylim(0,2)
@@ -140,6 +141,7 @@ elif menu == "Power":
         plt.grid()
         plt.legend()
 
+        # Subplot 2: Strength vs Time (I tuoi fill colorati)
         plt.subplot(2,1,2)
         plt.xlim(0,2.5)
         plt.ylim(0,2)
@@ -154,5 +156,4 @@ elif menu == "Power":
         plt.legend()
 
         plt.tight_layout()
-        st.pyplot(fig)        st.pyplot(fig)
-
+        st.pyplot(fig)
