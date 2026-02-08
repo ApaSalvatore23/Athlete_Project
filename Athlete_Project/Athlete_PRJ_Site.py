@@ -39,7 +39,7 @@ if menu == "Squat 1RM":
         st.metric("Estimated Squat 1RM", f"{round(max_weight)} kg")
         st.write(f"Sollevi circa **{round(relative_strength * 10)/10}** volte il tuo peso corporeo.")
 
-# --- SEZIONE JUMP (GRAFICI ORIGINALI) ---
+# --- SEZIONE JUMP (CON GRAFICI) ---
 elif menu == "Potential Vertical Jump":
     st.header("Potential Vertical Jump")
     col1, col2 = st.columns(2)
@@ -155,3 +155,4 @@ elif menu == "Power":
 
         plt.tight_layout()
         st.pyplot(fig)        st.pyplot(fig)
+
