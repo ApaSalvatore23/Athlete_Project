@@ -28,7 +28,7 @@ menu = st.sidebar.selectbox("Cosa vuoi calcolare?",
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Credits")
-st.sidebar.info("Developed by **Salvatore Apa**")
+st.sidebar.info(" by **Salvatore Apa...**")
 
 def footer_credits():
     st.markdown("---")
@@ -138,3 +138,4 @@ elif menu == "Power":
         plt.tight_layout()
         st.pyplot(fig)
         footer_credits()
+
