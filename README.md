@@ -1,5 +1,5 @@
 # Athletic Performance & Power Calculator
-
+# Website Link: https://athleteproject-eys2o38hbmaxp7cyfzik4f.streamlit.app/
 A Python tool designed for athletes and strength coaches to estimate **One Repetition Maximum (1RM)**, **Vertical Jump Potential**, and **Explosive Power** using validated scientific formulas.
 
 - **1RM Estimation:** Calculates a reliable Squat and Bench Press maximum by averaging **Epley**, **Brzycki**, and **Lombardi** formulas.
