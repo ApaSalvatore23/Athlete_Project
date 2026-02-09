@@ -34,6 +34,7 @@ user_workout = Workout()
 with st.sidebar:
     st.title("Settings")
     body_weight = st.number_input("Peso Corporeo (kg):", min_value=1.0, value=75.0, step=0.1)
+    athlete_height = st.number_input("Altezza Atleta (cm):", value=175.0)
     st.markdown("---")
     st.markdown("### 🚀 Credits")
     st.info("Developed by **Salvatore Apa**")
@@ -140,4 +141,5 @@ with menu[3]:
 # --- FOOTER ---
 st.markdown("---")
 st.caption("© 2026 Athlete Pro Analyzer | Created by Salvatore Apa | Powered by Streamlit & Plotly")
+
 
