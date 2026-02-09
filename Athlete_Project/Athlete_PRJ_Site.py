@@ -81,7 +81,7 @@ with menu[1]:
     max_p_j = user_workout.k_max * (max_w_j / body_weight)
     rel_s_j = max_w_j / body_weight
 
-    t1, t2 = st.tabs(["📊 Grafico Interattivo", "📜 Dettagli Tecnici"])
+    t1, t2 = st.tabs(["📊 Grafico", "📜 Dettagli Tecnici"])
     
     with t1:
         fig = go.Figure()
@@ -90,6 +90,13 @@ with menu[1]:
         fig.add_trace(go.Scatter(x=[rel_s_j], y=[current_jump], mode='markers+text', 
                                  marker=dict(size=18, color='red', line=dict(width=2, color='white')),
                                  name="Tu", text=["Tua Posizione"], textposition="top center"))
+        fig.add_annotation(
+            x=2.25, y=122, # Posizionato appena sopra il rettangolo verde
+            text="<b>🟩 RANGE IDEALE</b>",
+            showarrow=False,
+            font=dict(family="Arial", size=14, color="#90EE90"), # Stesso verde
+            align="center"
+        )
         
         fig.update_layout(title="Rapporto Forza/Salto", xaxis_title="Forza Relativa (BW)", 
                           yaxis_title="Salto (cm)", template="plotly_dark", height=500)
@@ -132,4 +139,5 @@ with menu[3]:
 
 # --- FOOTER ---
 st.markdown("---")
-st.caption("© 2024 Athlete Pro Analyzer | Created by Salvatore Apa | Powered by Streamlit & Plotly")
+st.caption("© 2026 Athlete Pro Analyzer | Created by Salvatore Apa | Powered by Streamlit & Plotly")
+
