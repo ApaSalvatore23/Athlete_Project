@@ -180,3 +180,4 @@ with menu[3]:
     p_time = st.number_input("Tempo Fase Concentrica (s):", value=0.5)
     p_index = (p_load / body_weight) / p_time
     st.metric("Power Index", f"{round(p_index, 2)}")
+
