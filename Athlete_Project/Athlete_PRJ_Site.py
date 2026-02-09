@@ -20,9 +20,9 @@ class Workout:
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="Athlete Pro Analyzer", layout="wide", initial_sidebar_state="expanded")
 
-# Link Modelli 3D RAW
+# --- LINK MODELLI 3D (CORRETTI) ---
 URL_MANICHINO = "https://raw.githubusercontent.com/ApaSalvatore23/Athlete_Project/main/Athlete_Project/3D_Assets/Mannequin_ATH.glb"
-URL_CANESTRO = "https://raw.githubusercontent.com/ApaSalvatore23/Athlete_Project/main/Athlete_Project/3D_Assets/Mannequin_ATH.glb"
+URL_CANESTRO = "https://raw.githubusercontent.com/ApaSalvatore23/Athlete_Project/main/Athlete_Project/3D_Assets/Basket_Hoop.glb"
 
 st.markdown("""
     <style>
@@ -36,12 +36,8 @@ user_workout = Workout()
 
 # --- FUNZIONE MOTORE 3D ---
 def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
-    # Rimuoviamo eventuali spazi o a capo dai link per sicurezza
-    url_man = url_man.strip()
-    url_can = url_can.strip()
-    
     html_code = f"""
-    <div id="container3d" style="width: 100%; height: 500px; background: #0e1117; border-radius: 10px; border: 1px solid #30363d;"></div>
+    <div id="container3d" style="width: 100%; height: 550px; background: #0e1117; border-radius: 10px; border: 1px solid #30363d;"></div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -50,42 +46,36 @@ def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
     <script>
         (function() {{
             const container = document.getElementById('container3d');
-            container.innerHTML = ''; // Pulisce residui precedenti
+            container.innerHTML = ''; 
 
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0e1117);
             
-            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / 500, 0.1, 1000);
-            camera.position.set(5, 2, 8);
+            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / 550, 0.1, 1000);
+            camera.position.set(7, 3, 12);
 
             const renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
-            renderer.setSize(window.innerWidth, 500);
+            renderer.setSize(window.innerWidth, 550);
             container.appendChild(renderer.domElement);
 
-            // Luci
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambientLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-            dirLight.position.set(5, 10, 5);
-            scene.add(dirLight);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(10, 20, 10);
+            scene.add(light);
 
-            // Pavimento e Griglia
-            const grid = new THREE.GridHelper(20, 20, 0x00d4ff, 0x333333);
+            const grid = new THREE.GridHelper(30, 30, 0x00d4ff, 0x333333);
             scene.add(grid);
 
             const loader = new THREE.GLTFLoader();
 
-            // 1. CARICAMENTO CANESTRO
+            // 1. CARICAMENTO CANESTRO (Scala e Posizione Regolate)
             loader.load('{url_can}', (gltf) => {{
                 const hoop = gltf.scene;
-                
-                // REGOLAZIONE SCALA: Se il canestro è enorme, metti 0.01. Se è minuscolo, metti 10.0
-                hoop.scale.set(1.0, 1.0, 1.0); 
-                
-                // POSIZIONE: x=2 (distanza), y=0 (terra), z=0
-                hoop.position.set(2, 0, 0); 
+                // Regola qui se il canestro sembra ancora troppo piccolo o grande
+                hoop.scale.set(1.1, 1.1, 1.1); 
+                hoop.position.set(3, 0, 0); 
                 scene.add(hoop);
-            }}, undefined, (err) => console.error("Errore Canestro:", err));
+            }});
 
             // 2. CARICAMENTO MANICHINO
             loader.load('{url_man}', (gltf) => {{
@@ -93,28 +83,28 @@ def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
                 const box = new THREE.Box3().setFromObject(athlete);
                 const size = box.getSize(new THREE.Vector3());
                 
-                // Scala automatica basata sull'altezza impostata nello slider
                 const scaleFactor = {altezza_m} / (size.y || 1);
                 athlete.scale.set(scaleFactor, scaleFactor, scaleFactor);
                 
-                // Posizione: x=0, y=salto, z=0
+                // Lo mettiamo al centro e sollevato dal salto
                 athlete.position.set(0, {salto_m}, 0); 
                 scene.add(athlete);
-            }}, undefined, (err) => console.error("Errore Manichino:", err));
+            }});
 
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
+            controls.target.set(1.5, 1.5, 0);
+            controls.update();
 
             function animate() {{
                 requestAnimationFrame(animate);
-                controls.update();
                 renderer.render(scene, camera);
             }}
             animate();
         }})();
     </script>
     """
-    components.html(html_code, height=520)
+    components.html(html_code, height=560)
+
 # --- SIDEBAR ---
 with st.sidebar:
     st.title("Settings")
@@ -136,7 +126,7 @@ with menu[0]:
     max_sq = user_workout._calculate_1rm(load_sq, reps_sq)
     st.metric("Estimated 1RM Squat", f"{round(max_sq, 1)} kg")
 
-# --- 2. JUMP TAB (Design Integrato) ---
+# --- 2. JUMP TAB ---
 with menu[1]:
     st.header("Potential Vertical Jump Analysis")
     c1, c2 = st.columns(2)
@@ -147,46 +137,27 @@ with menu[1]:
         load_j = st.number_input("Carico Squat per Calcolo Potenziale (kg):", value=100.0, key="j_l")
         reps_j = st.number_input("Reps Squat:", value=5, key="j_r")
 
-    # Calcoli Potenziale
     max_w_j = user_workout._calculate_1rm(load_j, reps_j)
     rel_s_j = max_w_j / body_weight
     pot_min = user_workout.k_min * rel_s_j
     pot_max = user_workout.k_max * rel_s_j
 
     st.markdown("### 📊 Analisi Grafica e Potenziale")
-    
-    # Grafico con Linee Potenziale
     fig = go.Figure()
-    
-    # Range Ideale (Sfondo)
     fig.add_shape(type="rect", x0=2, y0=95, x1=2.5, y1=120, fillcolor="rgba(144,238,144,0.1)", line_width=0)
-    
-    # Linea Minimo Potenziale
-    fig.add_shape(type="line", x0=rel_s_j-0.5, x1=rel_s_j+0.5, y0=pot_min, y1=pot_min,
-                  line=dict(color="orange", width=2, dash="dash"))
-    fig.add_annotation(x=rel_s_j+0.5, y=pot_min, text=f"Potenziale Min: {round(pot_min)}cm", showarrow=False, xanchor="left", font=dict(color="orange"))
-
-    # Linea Massimo Potenziale
-    fig.add_shape(type="line", x0=rel_s_j-0.5, x1=rel_s_j+0.5, y0=pot_max, y1=pot_max,
-                  line=dict(color="#00ff00", width=2, dash="dash"))
-    fig.add_annotation(x=rel_s_j+0.5, y=pot_max, text=f"Potenziale Max: {round(pot_max)}cm", showarrow=False, xanchor="left", font=dict(color="#00ff00"))
-
-    # Posizione Attuale
-    fig.add_trace(go.Scatter(x=[rel_s_j], y=[current_jump], mode='markers+text', 
-                             marker=dict(size=18, color='red', line=dict(width=2, color='white')),
-                             name="Tu", text=["Tua Posizione"], textposition="bottom center"))
-
-    fig.update_layout(title="Rapporto Forza/Salto e Range Potenziale", 
-                      xaxis_title="Forza Relativa (BW)", yaxis_title="Salto (cm)", 
-                      template="plotly_dark", height=500)
+    fig.add_shape(type="line", x0=rel_s_j-0.3, x1=rel_s_j+0.3, y0=pot_min, y1=pot_min, line=dict(color="orange", width=2, dash="dash"))
+    fig.add_annotation(x=rel_s_j+0.3, y=pot_min, text=f"Min: {round(pot_min)}cm", showarrow=False, xanchor="left", font=dict(color="orange"))
+    fig.add_shape(type="line", x0=rel_s_j-0.3, x1=rel_s_j+0.3, y0=pot_max, y1=pot_max, line=dict(color="#00ff00", width=2, dash="dash"))
+    fig.add_annotation(x=rel_s_j+0.3, y=pot_max, text=f"Max: {round(pot_max)}cm", showarrow=False, xanchor="left", font=dict(color="#00ff00"))
+    fig.add_trace(go.Scatter(x=[rel_s_j], y=[current_jump], mode='markers+text', marker=dict(size=18, color='red', line=dict(width=2, color='white')), name="Tu", text=["Tua Posizione"], textposition="bottom center"))
+    fig.update_layout(title="Rapporto Forza/Salto", xaxis_title="Forza Relativa (BW)", yaxis_title="Salto (cm)", template="plotly_dark", height=500)
     st.plotly_chart(fig, use_container_width=True)
 
-    # SIMULATORE 3D
     st.markdown("---")
     st.subheader("📍 Simulazione Biomeccanica al Picco")
+    # Lancio del visualizzatore con i parametri altezza e salto
     visualizzatore_3d_pro(athlete_height/100, current_jump/100, URL_MANICHINO, URL_CANESTRO)
     
-    # Feedback Schiacciata
     tocco_totale = (standing_reach + current_jump) / 100
     diff = tocco_totale - 3.05
     if diff >= 0:
@@ -194,22 +165,18 @@ with menu[1]:
     else:
         st.warning(f"🏀 Ti mancano {int(abs(diff)*100)} cm per arrivare al ferro (3.05m).")
 
-# --- 3. BENCH PRESS TAB ---
+# --- 3. BENCH PRESS ---
 with menu[2]:
     st.header("Analisi Panca Piana")
     l_bp = st.number_input("Carico (kg):", value=80.0, key="bp_l")
     r_bp = st.number_input("Reps:", value=5, key="bp_r")
     max_bp = user_workout._calculate_1rm(l_bp, r_bp)
-    st.metric("1RM Panca", f"{round(max_bp, 1)} kg", delta=f"{round(max_bp/body_weight, 2)}x BW")
+    st.metric("1RM Panca", f"{round(max_bp, 1)} kg")
 
-# --- 4. POWER TAB ---
+# --- 4. POWER ---
 with menu[3]:
-    st.header("Power & Velocity Analysis")
+    st.header("Power Analysis")
     p_load = st.number_input("Carico Utilizzato (kg):", value=80.0)
     p_time = st.number_input("Tempo Fase Concentrica (s):", value=0.5)
     p_index = (p_load / body_weight) / p_time
     st.metric("Power Index", f"{round(p_index, 2)}")
-
-
-
-
