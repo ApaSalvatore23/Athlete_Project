@@ -36,6 +36,10 @@ user_workout = Workout()
 
 # --- FUNZIONE MOTORE 3D ---
 def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
+    # Rimuoviamo eventuali spazi o a capo dai link per sicurezza
+    url_man = url_man.strip()
+    url_can = url_can.strip()
+    
     html_code = f"""
     <div id="container3d" style="width: 100%; height: 500px; background: #0e1117; border-radius: 10px; border: 1px solid #30363d;"></div>
     
@@ -44,63 +48,70 @@ def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        // Svuota il contenitore per evitare doppi modelli se Streamlit ricarica
-        const container = document.getElementById('container3d');
-        container.innerHTML = '';
+        (function() {{
+            const container = document.getElementById('container3d');
+            container.innerHTML = ''; // Pulisce residui precedenti
 
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0e1117);
-        
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / 500, 0.1, 1000);
-        camera.position.set(5, 2, 8);
-
-        const renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
-        renderer.setSize(window.innerWidth, 500);
-        container.appendChild(renderer.domElement);
-
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(5, 10, 5);
-        scene.add(dirLight);
-
-        const loader = new THREE.GLTFLoader();
-
-        // 1. CARICAMENTO CANESTRO (Regola qui la scala se è troppo grande o piccolo)
-        loader.load('{url_can}', (gltf) => {{
-            const hoop = gltf.scene;
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0e1117);
             
-            // PROVA A CAMBIARE QUESTI NUMERI SE IL CANESTRO È SPROPORZIONATO
-            // Se il canestro è troppo piccolo, metti 2.0, 2.0, 2.0. Se è enorme, metti 0.1, 0.1, 0.1
-            hoop.scale.set(1.0, 1.0, 1.0); 
-            
-            hoop.position.set(2, 0, 0); // Distanza dal manichino
-            scene.add(hoop);
-        }});
+            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / 500, 0.1, 1000);
+            camera.position.set(5, 2, 8);
 
-        // 2. CARICAMENTO MANICHINO
-        loader.load('{url_man}', (gltf) => {{
-            const athlete = gltf.scene;
-            const box = new THREE.Box3().setFromObject(athlete);
-            const size = box.getSize(new THREE.Vector3());
-            
-            // Scala automatica basata sull'altezza dell'atleta
-            const scaleFactor = {altezza_m} / size.y;
-            athlete.scale.set(scaleFactor, scaleFactor, scaleFactor);
-            
-            athlete.position.set(0, {salto_m}, 0); 
-            scene.add(athlete);
-        }});
+            const renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
+            renderer.setSize(window.innerWidth, 500);
+            container.appendChild(renderer.domElement);
 
-        const grid = new THREE.GridHelper(20, 20, 0x00d4ff, 0x333333);
-        scene.add(grid);
+            // Luci
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+            dirLight.position.set(5, 10, 5);
+            scene.add(dirLight);
 
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        
-        function animate() {{
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }}
-        animate();
+            // Pavimento e Griglia
+            const grid = new THREE.GridHelper(20, 20, 0x00d4ff, 0x333333);
+            scene.add(grid);
+
+            const loader = new THREE.GLTFLoader();
+
+            // 1. CARICAMENTO CANESTRO
+            loader.load('{url_can}', (gltf) => {{
+                const hoop = gltf.scene;
+                
+                // REGOLAZIONE SCALA: Se il canestro è enorme, metti 0.01. Se è minuscolo, metti 10.0
+                hoop.scale.set(1.0, 1.0, 1.0); 
+                
+                // POSIZIONE: x=2 (distanza), y=0 (terra), z=0
+                hoop.position.set(2, 0, 0); 
+                scene.add(hoop);
+            }}, undefined, (err) => console.error("Errore Canestro:", err));
+
+            // 2. CARICAMENTO MANICHINO
+            loader.load('{url_man}', (gltf) => {{
+                const athlete = gltf.scene;
+                const box = new THREE.Box3().setFromObject(athlete);
+                const size = box.getSize(new THREE.Vector3());
+                
+                // Scala automatica basata sull'altezza impostata nello slider
+                const scaleFactor = {altezza_m} / (size.y || 1);
+                athlete.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                
+                // Posizione: x=0, y=salto, z=0
+                athlete.position.set(0, {salto_m}, 0); 
+                scene.add(athlete);
+            }}, undefined, (err) => console.error("Errore Manichino:", err));
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            function animate() {{
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }}
+            animate();
+        }})();
     </script>
     """
     components.html(html_code, height=520)
@@ -198,6 +209,7 @@ with menu[3]:
     p_time = st.number_input("Tempo Fase Concentrica (s):", value=0.5)
     p_index = (p_load / body_weight) / p_time
     st.metric("Power Index", f"{round(p_index, 2)}")
+
 
 
 
