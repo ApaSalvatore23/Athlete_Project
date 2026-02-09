@@ -36,7 +36,6 @@ user_workout = Workout()
 
 # --- FUNZIONE MOTORE 3D ---
 def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
-    # Usiamo le doppie graffe {{ }} per il codice JS che non deve essere interpretato da Python
     html_code = f"""
     <div id="container3d" style="width: 100%; height: 550px; background: #0e1117; border-radius: 10px; border: 1px solid #30363d;"></div>
     
@@ -47,60 +46,64 @@ def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
     <script>
         (function() {{
             const container = document.getElementById('container3d');
-            container.innerHTML = ''; 
-
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0e1117);
             
-            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / 550, 0.1, 1000);
-            camera.position.set(6, 4, 10);
+            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / 550, 0.01, 2000);
+            camera.position.set(5, 5, 12);
 
             const renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
             renderer.setSize(container.clientWidth, 550);
             container.appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-            const light = new THREE.DirectionalLight(0xffffff, 0.8);
-            light.position.set(5, 10, 5);
-            scene.add(light);
+            // Luce ambientale fortissima per debug
+            scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+            const pointLight = new THREE.PointLight(0xffffff, 1);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
 
             const grid = new THREE.GridHelper(20, 20, 0x00d4ff, 0x333333);
             scene.add(grid);
 
             const loader = new THREE.GLTFLoader();
 
-            // 1. CARICAMENTO CANESTRO
+            // Caricamento Canestro
             loader.load('{url_can}', (gltf) => {{
-                const hoop = gltf.scene;
-                // Calcolo automatico scala per portarlo a circa 3.5m totali
-                const box = new THREE.Box3().setFromObject(hoop);
+                const model = gltf.scene;
+                // Calcolo automatico scala
+                const box = new THREE.Box3().setFromObject(model);
                 const size = box.getSize(new THREE.Vector3());
-                const s = 3.8 / size.y; 
-                hoop.scale.set(s, s, s);
-                hoop.position.set(3, 0, 0); 
-                scene.add(hoop);
-            }}, undefined, (error) => console.error(error));
+                const scale = 3.5 / size.y;
+                model.scale.set(scale, scale, scale);
+                model.position.set(3, 0, 0);
+                scene.add(model);
+            }}, undefined, (e) => console.error("Errore Canestro:", e));
 
-            // 2. CARICAMENTO MANICHINO
+            // Caricamento Manichino
             loader.load('{url_man}', (gltf) => {{
-                const athlete = gltf.scene;
-                const box = new THREE.Box3().setFromObject(athlete);
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
                 const size = box.getSize(new THREE.Vector3());
                 
-                // Scala basata sull'altezza atleta reale
-                const scaleFactor = {altezza_m} / (size.y || 1);
-                athlete.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                // Forza altezza basata su input utente
+                const scale = {altezza_m} / (size.y || 1);
+                model.scale.set(scale, scale, scale);
+                model.position.set(0, {salto_m}, 0);
                 
-                athlete.position.set(0, {salto_m}, 0); 
-                scene.add(athlete);
-            }}, undefined, (error) => console.error(error));
+                // Coloriamo il manichino se non si vede (debug)
+                model.traverse((node) => {{
+                    if (node.isMesh) node.material.side = THREE.DoubleSide;
+                }});
+                
+                scene.add(model);
+            }}, undefined, (e) => console.error("Errore Manichino:", e));
 
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.target.set(1.5, 1.5, 0);
-            controls.update();
+            controls.target.set(0, 1.5, 0);
 
             function animate() {{
                 requestAnimationFrame(animate);
+                controls.update();
                 renderer.render(scene, camera);
             }}
             animate();
@@ -108,7 +111,6 @@ def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
     </script>
     """
     components.html(html_code, height=560)
-
 # --- SIDEBAR ---
 with st.sidebar:
     st.title("Settings")
@@ -181,3 +183,4 @@ with menu[3]:
     p_time = st.number_input("Tempo Fase Concentrica (s):", value=0.5)
     p_index = (p_load / body_weight) / p_time
     st.metric("Power Index", f"{round(p_index, 2)}")
+
