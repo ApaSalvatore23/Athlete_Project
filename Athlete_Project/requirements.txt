@@ -3,5 +3,6 @@ numpy
 streamlit
 pandas
 plotly
-math
+
+
 
