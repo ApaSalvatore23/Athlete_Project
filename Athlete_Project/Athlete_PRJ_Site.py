@@ -1,8 +1,11 @@
 import streamlit as st
 import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import math
 
+# --- LOGICA DI CALCOLO ---
 class Workout:
     def __init__(self):
         self.k_min = 48
@@ -14,128 +17,119 @@ class Workout:
         lombardi = load * math.pow(reps, 0.10)
         return (epley + brzycki + lombardi) / 3
 
-st.set_page_config(page_title="Workout Analyzer", layout="wide")
-st.title("🏋️ Workout Performance Analyzer")
+# --- CONFIGURAZIONE PAGINA ---
+st.set_page_config(page_title="Athlete Pro Analyzer", layout="wide", initial_sidebar_state="expanded")
+
+# CSS personalizzato per uno stile più moderno
+st.markdown("""
+    <style>
+    .main { background-color: #0e1117; }
+    .stMetric { background-color: #161b22; padding: 15px; border-radius: 10px; border: 1px solid #30363d; }
+    </style>
+    """, unsafe_allow_html=True)
 
 user_workout = Workout()
 
-# Sidebar
-st.sidebar.header("Dati Personali")
-body_weight = st.sidebar.number_input("Peso Corporeo (kg):", min_value=1.0, value=75.0, step=0.1)
-
-menu = st.sidebar.selectbox("Cosa vuoi calcolare?", 
-    ["Squat 1RM", "Potential Vertical Jump", "Bench Press 1RM", "Power"])
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### Credits")
-st.sidebar.info(" by **Salvatore Apa...**")
-
-def footer_credits():
+# --- SIDEBAR & CREDITS ---
+with st.sidebar:
+    st.title("Settings")
+    body_weight = st.number_input("Peso Corporeo (kg):", min_value=1.0, value=75.0, step=0.1)
     st.markdown("---")
-    st.caption("© 2024 - Engine & Visualization by Salvatore Apa")
+    st.markdown("### 🚀 Credits")
+    st.info("Developed by **Salvatore Apa**")
+    st.write("Versione 2.0 (Pro)")
 
-# --- 1. SQUAT ---
-if menu == "Squat 1RM":
+st.title("🏋️ Athlete Performance Analyzer")
+menu = st.tabs(["Squat 1RM", "Potential Jump", "Bench Press", "Power Analysis"])
+
+# Funzione per scaricare i dati
+def download_report(data_dict):
+    df = pd.DataFrame([data_dict])
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Scarica Report (.csv)", csv, "atleta_report.csv", "text/csv")
+
+# --- 1. SQUAT TAB ---
+with menu[0]:
     st.header("Analisi Massimale Squat")
-    load = st.number_input("Carico Squat (kg):", min_value=0.0, value=100.0)
-    reps = st.number_input("Ripetizioni Squat:", min_value=1, value=5)
-    if st.button("Calcola"):
-        max_weight = user_workout._calculate_1rm(load, reps)
-        relative_strength = max_weight / body_weight
-        st.metric("Estimated Squat 1RM", f"{round(max_weight)} kg")
-        st.write(f"Sollevi circa **{round(relative_strength * 10)/10}** volte il tuo peso corporeo.")
-        footer_credits()
-
-# --- 2. JUMP ---
-elif menu == "Potential Vertical Jump":
-    st.header("Potential Vertical Jump Analysis")
     col1, col2 = st.columns(2)
     with col1:
-        standing_reach = st.number_input("Standing Reach (cm):", value=220.0)
-        current_jump = st.number_input("Salto Verticale Attuale (cm):", value=50.0)
+        load_sq = st.number_input("Carico (kg):", min_value=0.0, value=100.0, key="sq_l")
+        reps_sq = st.number_input("Ripetizioni:", min_value=1, value=5, key="sq_r")
+    
+    max_sq = user_workout._calculate_1rm(load_sq, reps_sq)
+    rel_sq = max_sq / body_weight
+    
     with col2:
-        load = st.number_input("Carico Squat (kg):", value=100.0)
-        reps = st.number_input("Ripetizioni Squat:", value=5)
+        st.metric("Estimated 1RM", f"{round(max_sq, 1)} kg", delta=f"{round(rel_sq, 2)}x BW")
+    
+    if st.button("Genera Report Squat"):
+        download_report({"Esercizio": "Squat", "1RM": max_sq, "Relative": rel_sq})
 
-    if st.button("Analizza Salto"):
-        max_weight = user_workout._calculate_1rm(load, reps)
-        min_jump = user_workout.k_min * (max_weight / body_weight)
-        max_jump = user_workout.k_max * (max_weight / body_weight)
-        relative_strength = round((max_weight / body_weight) * 10) / 10
-        st.subheader(f"Potenziale Verticale: {round(min_jump)}-{round(max_jump)} cm")
+# --- 2. JUMP TAB ---
+with menu[1]:
+    st.header("Potential Vertical Jump Analysis")
+    c1, c2 = st.columns(2)
+    with c1:
+        standing_reach = st.number_input("Standing Reach (cm):", value=220.0)
+        current_jump = st.number_input("Salto Attuale (cm):", value=50.0)
+    with c2:
+        load_j = st.number_input("Carico Squat (kg):", value=100.0, key="j_l")
+        reps_j = st.number_input("Reps Squat:", value=5, key="j_r")
+
+    max_w_j = user_workout._calculate_1rm(load_j, reps_j)
+    min_p_j = user_workout.k_min * (max_w_j / body_weight)
+    max_p_j = user_workout.k_max * (max_w_j / body_weight)
+    rel_s_j = max_w_j / body_weight
+
+    t1, t2 = st.tabs(["📊 Grafico Interattivo", "📜 Dettagli Tecnici"])
+    
+    with t1:
+        fig = go.Figure()
+        # Aree di performance
+        fig.add_shape(type="rect", x0=2, y0=95, x1=2.5, y1=120, fillcolor="rgba(144,238,144,0.3)", line_width=0)
+        fig.add_trace(go.Scatter(x=[rel_s_j], y=[current_jump], mode='markers+text', 
+                                 marker=dict(size=18, color='red', line=dict(width=2, color='white')),
+                                 name="Tu", text=["Tua Posizione"], textposition="top center"))
         
-        fig = plt.figure(figsize=(8,10))
-        plt.subplot(2,1,1)
-        plt.xlim(0,3)
-        plt.ylim(0,120)
-        plt.plot([0,3],[50,50], label="Beginner (50-65cm)")
-        plt.plot([0,3],[70,70], label="Intermediate (70-80cm)")
-        plt.plot([0,3],[80,80], label="Excellent (80-90cm)")
-        plt.plot([0,3],[90,90], label="Advanced (90-105cm)")
-        plt.plot([0,3],[105,105], label="Elite (105+cm)")
-        plt.plot(2.5, min_jump, 'ro', label="Min Potential Jump")
-        plt.plot(2.5, max_jump, 'go', label="Max Potential Jump")
-        plt.plot(1.5, current_jump, 'bo', label="Current Jump")
-        plt.title("Jump Performance Chart")
-        plt.ylabel("Height (cm)")
-        plt.grid()
-        plt.legend()
+        fig.update_layout(title="Rapporto Forza/Salto", xaxis_title="Forza Relativa (BW)", 
+                          yaxis_title="Salto (cm)", template="plotly_dark", height=500)
+        st.plotly_chart(fig, use_container_width=True)
 
-        plt.subplot(2,1,2)
-        plt.xlim(0, 2.5)
-        plt.ylim(0, 120)
-        plt.fill([2,2.5,2.5,2],[95,95,120,120], color='#90EE90', label="Ideal Ratio")
-        plt.fill([2,2.5,2.5,2],[95,95,0,0], color='#FFF44F', label="Ideal Strength")
-        plt.fill([0,0,2,2],[120,95,95,120], color='#87CEFA', label="Ideal Jump")
-        plt.plot(relative_strength, current_jump, 'ro', label="Current Jump")
-        plt.title("Jump vs Relative Strength Chart")
-        plt.xlabel("Relative Strength (BW)")
-        plt.ylabel("Jump Height (cm)")
-        plt.grid()
-        plt.legend()
-        plt.tight_layout()
-        st.pyplot(fig)
-        footer_credits()
+    with t2:
+        st.write(f"**Potenziale Stimato:** {round(min_p_j)} - {round(max_p_j)} cm")
+        st.progress(min(current_jump/max_p_j, 1.0))
 
-# --- 3. BENCH PRESS ---
-elif menu == "Bench Press 1RM":
-    st.header("Analisi Massimale Panca Piana")
-    load = st.number_input("Carico Bench Press (kg):", value=80.0)
-    reps = st.number_input("Ripetizioni Bench Press:", value=5)
-    if st.button("Calcola Panca"):
-        max_weight = user_workout._calculate_1rm(load, reps)
-        relative_strength = max_weight / body_weight
-        st.metric("Estimated Bench Press 1RM", f"{round(max_weight)} kg")
-        st.write(f"Sollevi circa **{round(relative_strength * 10)/10}** volte il tuo peso corporeo.")
-        footer_credits()
+# --- 3. BENCH PRESS TAB ---
+with menu[2]:
+    st.header("Analisi Panca Piana")
+    l_bp = st.number_input("Carico (kg):", value=80.0, key="bp_l")
+    r_bp = st.number_input("Reps:", value=5, key="bp_r")
+    max_bp = user_workout._calculate_1rm(l_bp, r_bp)
+    st.metric("1RM Panca", f"{round(max_bp, 1)} kg", delta=f"{round(max_bp/body_weight, 2)}x BW")
 
-# --- 4. POWER ---
-elif menu == "Power":
-    st.header("Analisi della Potenza")
-    load = st.number_input("Carico Squat (kg):", value=80.0)
-    time = st.number_input("Tempo fase concentrica (s):", value=0.5)
-    if st.button("Calcola Livello Potenza"):
-        relative_strength = round((load / body_weight) * 10) / 10
-        power_index = relative_strength / time
-        if power_index < 0.8: power_level = "Low"
-        elif power_index < 1.5: power_level = "Medium"
-        elif power_index < 2.5: power_level = "High"
-        else: power_level = "Elite"
-        st.success(f"Il tuo Power Level è: {power_level}")
-        fig = plt.figure(figsize=(8,10))
-        plt.subplot(2,1,1)
-        plt.xlim(0,3); plt.ylim(0,2)
-        plt.plot([0,3],[0.7,0.7], label="Low"); plt.plot([0,3],[1.0,1.0], label="Medium"); plt.plot([0,3],[1.5,1.5], label="Advanced")
-        plt.plot(1.5, power_index, 'ro', label="You")
-        plt.title("Power Level Chart"); plt.grid(); plt.legend()
-        plt.subplot(2,1,2)
-        plt.xlim(0,2.5); plt.ylim(0,2)
-        plt.plot(time, relative_strength, 'ro', label="You")
-        plt.fill([0,0.8,0.8,0],[2,2,1.25,1.25], color='#90EE90', label="Ideal Ratio")
-        plt.fill([0,0.8,0.8,0],[1.25,1.25,0,0], color="#87CEFA", label="Ideal Time")
-        plt.fill([0.8,0.8,2.5,2.52],[1.25,2,2,1.25], color="#FFF44F", label="Ideal Strength")
-        plt.title("Strength vs Time Chart"); plt.xlabel("Time (s)"); plt.ylabel("Relative Strength (BW)"); plt.grid(); plt.legend()
-        plt.tight_layout()
-        st.pyplot(fig)
-        footer_credits()
+# --- 4. POWER TAB ---
+with menu[3]:
+    st.header("Power & Velocity Analysis")
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        p_load = st.number_input("Carico Utilizzato (kg):", value=80.0)
+        p_time = st.number_input("Tempo Fase Concentrica (s):", value=0.5)
+    
+    p_rel = p_load / body_weight
+    p_index = p_rel / p_time
 
+    with col_p2:
+        st.metric("Power Index", f"{round(p_index, 2)}")
+        if p_index > 1.5: st.success("Livello: Elite")
+        else: st.warning("Livello: Da migliorare")
+
+    # Grafico Potenza Plotly
+    fig_p = go.Figure()
+    fig_p.add_trace(go.Bar(x=['Tuo Indice'], y=[p_index], marker_color='#87CEFA'))
+    fig_p.add_shape(type="line", x0=-0.5, y0=1.5, x1=0.5, y1=1.5, line=dict(color="Red", dash="dash"))
+    fig_p.update_layout(title="Power Index vs Benchmark (1.5)", template="plotly_dark", height=400)
+    st.plotly_chart(fig_p, use_container_width=True)
+
+# --- FOOTER ---
+st.markdown("---")
+st.caption("© 2024 Athlete Pro Analyzer | Created by Salvatore Apa | Powered by Streamlit & Plotly")
