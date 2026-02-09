@@ -38,65 +38,64 @@ user_workout = Workout()
 def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
     html_code = f"""
     <div id="container3d" style="width: 100%; height: 500px; background: #0e1117; border-radius: 10px; border: 1px solid #30363d;"></div>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
     <script>
+        // Svuota il contenitore per evitare doppi modelli se Streamlit ricarica
+        const container = document.getElementById('container3d');
+        container.innerHTML = '';
+
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0e1117);
         
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / 500, 0.1, 1000);
-        camera.position.set(6, 3, 10);
+        camera.position.set(5, 2, 8);
 
         const renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
         renderer.setSize(window.innerWidth, 500);
-        document.getElementById('container3d').appendChild(renderer.domElement);
+        container.appendChild(renderer.domElement);
 
-        // Luci
-        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
         const dirLight = new THREE.DirectionalLight(0xffffff, 1);
         dirLight.position.set(5, 10, 5);
         scene.add(dirLight);
 
-        // --- AGGIUNTA PIATTAFORMA/PAVIMENTO ---
-        const meshFloor = new THREE.Mesh(
-            new THREE.PlaneGeometry(20, 20),
-            new THREE.MeshPhongMaterial({{ color: 0x1b1e23, depthWrite: true, side: THREE.DoubleSide }})
-        );
-        meshFloor.rotation.x = -Math.PI / 2;
-        scene.add(meshFloor);
-
-        // Griglia sopra il pavimento
-        const grid = new THREE.GridHelper(20, 20, 0x00d4ff, 0x333333);
-        scene.add(grid);
-
         const loader = new THREE.GLTFLoader();
 
-        // Caricamento Canestro
+        // 1. CARICAMENTO CANESTRO (Regola qui la scala se è troppo grande o piccolo)
         loader.load('{url_can}', (gltf) => {{
             const hoop = gltf.scene;
-            hoop.position.set(2, 0, 0); 
+            
+            // PROVA A CAMBIARE QUESTI NUMERI SE IL CANESTRO È SPROPORZIONATO
+            // Se il canestro è troppo piccolo, metti 2.0, 2.0, 2.0. Se è enorme, metti 0.1, 0.1, 0.1
+            hoop.scale.set(1.0, 1.0, 1.0); 
+            
+            hoop.position.set(2, 0, 0); // Distanza dal manichino
             scene.add(hoop);
         }});
 
-        // Caricamento Manichino
+        // 2. CARICAMENTO MANICHINO
         loader.load('{url_man}', (gltf) => {{
             const athlete = gltf.scene;
             const box = new THREE.Box3().setFromObject(athlete);
             const size = box.getSize(new THREE.Vector3());
             
+            // Scala automatica basata sull'altezza dell'atleta
             const scaleFactor = {altezza_m} / size.y;
             athlete.scale.set(scaleFactor, scaleFactor, scaleFactor);
             
-            // Appoggia i piedi esattamente sulla piattaforma (y=0) + altezza salto
-            athlete.position.set(0, {salto_m}, 0);
+            athlete.position.set(0, {salto_m}, 0); 
             scene.add(athlete);
         }});
 
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 1.5, 0);
-        controls.update();
+        const grid = new THREE.GridHelper(20, 20, 0x00d4ff, 0x333333);
+        scene.add(grid);
 
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        
         function animate() {{
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
@@ -199,5 +198,6 @@ with menu[3]:
     p_time = st.number_input("Tempo Fase Concentrica (s):", value=0.5)
     p_index = (p_load / body_weight) / p_time
     st.metric("Power Index", f"{round(p_index, 2)}")
+
 
 
