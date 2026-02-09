@@ -11,8 +11,8 @@ st.set_page_config(
 )
 
 # --- 2. DATABASE LINK MODELLI (Sostituisci con i tuoi link RAW di GitHub) ---
-URL_MANICHINO = "URL_IL_TUO_MANICHINO_QUI"
-URL_CANESTRO = "URL_IL_TUO_CANESTRO_QUI"
+URL_MANICHINO = ""
+URL_CANESTRO = "https://raw.githubusercontent.com/ApaSalvatore23/Athlete_Project/main/Athlete_Project/3D_Assets/Basket_Hoop.glb"
 
 # --- 3. FUNZIONE MOTORE 3D (THREE.JS) ---
 def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
@@ -132,3 +132,4 @@ with tab_dati:
 
 st.markdown("---")
 st.caption("Jump Lab 3D - Gestione Pesi e Performance Verticale")
+
