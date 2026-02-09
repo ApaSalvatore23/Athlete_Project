@@ -28,7 +28,7 @@ st.markdown("""
     <style>
     .main { background-color: #0e1117; }
     .stMetric { background-color: #161b22; padding: 15px; border-radius: 10px; border: 1px solid #30363d; }
-    iframe { border-radius: 10px; border: none; }
+    iframe { border-radius: 10px; border: none !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -36,6 +36,7 @@ user_workout = Workout()
 
 # --- FUNZIONE MOTORE 3D ---
 def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
+    # Usiamo le doppie graffe {{ }} per il codice JS che non deve essere interpretato da Python
     html_code = f"""
     <div id="container3d" style="width: 100%; height: 550px; background: #0e1117; border-radius: 10px; border: 1px solid #30363d;"></div>
     
@@ -52,17 +53,15 @@ def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
             scene.background = new THREE.Color(0x0e1117);
             
             const camera = new THREE.PerspectiveCamera(45, container.clientWidth / 550, 0.1, 1000);
-            camera.position.set(6, 3, 10);
+            camera.position.set(6, 4, 10);
 
             const renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
             renderer.setSize(container.clientWidth, 550);
-            renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
 
-            // Illuminazione potenziata
-            scene.add(new THREE.AmbientLight(0xffffff, 1));
-            const light = new THREE.DirectionalLight(0xffffff, 1.2);
-            light.position.set(5, 10, 7);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+            const light = new THREE.DirectionalLight(0xffffff, 0.8);
+            light.position.set(5, 10, 5);
             scene.add(light);
 
             const grid = new THREE.GridHelper(20, 20, 0x00d4ff, 0x333333);
@@ -73,15 +72,14 @@ def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
             // 1. CARICAMENTO CANESTRO
             loader.load('{url_can}', (gltf) => {{
                 const hoop = gltf.scene;
-                // Calcolo scala automatica per il canestro (base 3.05m al ferro)
+                // Calcolo automatico scala per portarlo a circa 3.5m totali
                 const box = new THREE.Box3().setFromObject(hoop);
                 const size = box.getSize(new THREE.Vector3());
-                const hoopScale = 3.5 / size.y; // Standardizzazione altezza
-                hoop.scale.set(hoopScale, hoopScale, hoopScale);
-                
+                const s = 3.8 / size.y; 
+                hoop.scale.set(s, s, s);
                 hoop.position.set(3, 0, 0); 
                 scene.add(hoop);
-            }});
+            }}, undefined, (error) => console.error(error));
 
             // 2. CARICAMENTO MANICHINO
             loader.load('{url_man}', (gltf) => {{
@@ -89,13 +87,13 @@ def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
                 const box = new THREE.Box3().setFromObject(athlete);
                 const size = box.getSize(new THREE.Vector3());
                 
-                // Scala basata sull'altezza atleta (m)
+                // Scala basata sull'altezza atleta reale
                 const scaleFactor = {altezza_m} / (size.y || 1);
                 athlete.scale.set(scaleFactor, scaleFactor, scaleFactor);
                 
                 athlete.position.set(0, {salto_m}, 0); 
                 scene.add(athlete);
-            }});
+            }}, undefined, (error) => console.error(error));
 
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.target.set(1.5, 1.5, 0);
@@ -106,12 +104,6 @@ def visualizzatore_3d_pro(altezza_m, salto_m, url_man, url_can):
                 renderer.render(scene, camera);
             }}
             animate();
-
-            window.addEventListener('resize', () => {{
-                camera.aspect = container.clientWidth / 550;
-                camera.updateProjectionMatrix();
-                renderer.setSize(container.clientWidth, 550);
-            }});
         }})();
     </script>
     """
@@ -128,7 +120,7 @@ with st.sidebar:
 st.title("🏋️ Athlete Performance Analyzer")
 menu = st.tabs(["Squat 1RM", "Potential Jump", "Bench Press", "Power Analysis"])
 
-# --- 1. SQUAT TAB ---
+# --- TAB 1 & TAB 2 (Logica Salto e Grafico) ---
 with menu[0]:
     st.header("Analisi Massimale Squat")
     col1, col2 = st.columns(2)
@@ -138,7 +130,6 @@ with menu[0]:
     max_sq = user_workout._calculate_1rm(load_sq, reps_sq)
     st.metric("Estimated 1RM Squat", f"{round(max_sq, 1)} kg")
 
-# --- 2. JUMP TAB ---
 with menu[1]:
     st.header("Potential Vertical Jump Analysis")
     c1, c2 = st.columns(2)
@@ -157,4 +148,36 @@ with menu[1]:
     st.markdown("### 📊 Analisi Grafica e Potenziale")
     fig = go.Figure()
     fig.add_shape(type="rect", x0=2, y0=95, x1=2.5, y1=120, fillcolor="rgba(144,238,144,0.1)", line_width=0)
-    fig.add_shape(type="line", x0=rel_s_j-0.3, x1=rel_
+    fig.add_shape(type="line", x0=rel_s_j-0.3, x1=rel_s_j+0.3, y0=pot_min, y1=pot_min, line=dict(color="orange", width=2, dash="dash"))
+    fig.add_annotation(x=rel_s_j+0.3, y=pot_min, text=f"Min: {round(pot_min)}cm", showarrow=False, xanchor="left", font=dict(color="orange"))
+    fig.add_shape(type="line", x0=rel_s_j-0.3, x1=rel_s_j+0.3, y0=pot_max, y1=pot_max, line=dict(color="#00ff00", width=2, dash="dash"))
+    fig.add_annotation(x=rel_s_j+0.3, y=pot_max, text=f"Max: {round(pot_max)}cm", showarrow=False, xanchor="left", font=dict(color="#00ff00"))
+    fig.add_trace(go.Scatter(x=[rel_s_j], y=[current_jump], mode='markers+text', marker=dict(size=18, color='red', line=dict(width=2, color='white')), name="Tu", text=["Tua Posizione"], textposition="bottom center"))
+    fig.update_layout(title="Rapporto Forza/Salto", xaxis_title="Forza Relativa (BW)", yaxis_title="Salto (cm)", template="plotly_dark", height=500)
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("📍 Simulazione Biomeccanica al Picco")
+    visualizzatore_3d_pro(athlete_height/100, current_jump/100, URL_MANICHINO, URL_CANESTRO)
+    
+    tocco_totale = (standing_reach + current_jump) / 100
+    diff = tocco_totale - 3.05
+    if diff >= 0:
+        st.success(f"🔥 Schiacciata possibile! Sei sopra il ferro di {int(diff*100)} cm.")
+    else:
+        st.warning(f"🏀 Ti mancano {int(abs(diff)*100)} cm per arrivare al ferro (3.05m).")
+
+# --- TAB 3 & 4 ---
+with menu[2]:
+    st.header("Analisi Panca Piana")
+    l_bp = st.number_input("Carico (kg):", value=80.0, key="bp_l")
+    r_bp = st.number_input("Reps:", value=5, key="bp_r")
+    max_bp = user_workout._calculate_1rm(l_bp, r_bp)
+    st.metric("1RM Panca", f"{round(max_bp, 1)} kg")
+
+with menu[3]:
+    st.header("Power Analysis")
+    p_load = st.number_input("Carico Utilizzato (kg):", value=80.0)
+    p_time = st.number_input("Tempo Fase Concentrica (s):", value=0.5)
+    p_index = (p_load / body_weight) / p_time
+    st.metric("Power Index", f"{round(p_index, 2)}")
