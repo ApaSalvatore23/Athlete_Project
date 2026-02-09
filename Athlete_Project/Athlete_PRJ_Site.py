@@ -22,7 +22,7 @@ st.set_page_config(page_title="Athlete Pro Analyzer", layout="wide", initial_sid
 
 # Link Modelli 3D RAW
 URL_MANICHINO = "https://raw.githubusercontent.com/ApaSalvatore23/Athlete_Project/main/Athlete_Project/3D_Assets/Mannequin_ATH.glb"
-URL_CANESTRO = "https://raw.githubusercontent.com/ApaSalvatore23/Athlete_Project/main/Athlete_Project/3D_Assets/Basket_Hoop.glb"
+URL_CANESTRO = "https://raw.githubusercontent.com/ApaSalvatore23/Athlete_Project/main/Athlete_Project/3D_Assets/Mannequin_ATH.glb"
 
 st.markdown("""
     <style>
@@ -199,4 +199,5 @@ with menu[3]:
     p_time = st.number_input("Tempo Fase Concentrica (s):", value=0.5)
     p_index = (p_load / body_weight) / p_time
     st.metric("Power Index", f"{round(p_index, 2)}")
+
 
