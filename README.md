@@ -15,7 +15,7 @@ To ensure accuracy, the tool calculates the 1RM as the mean of three industry-st
 *(Where Load is the weight lifted and reps is the number of repetitions)*
 
 The **Jump Potential** is calculated using an explosive coefficient (k) correlated with the athlete's relative strength:  **45-48**-> not very explosive athlete, **52-55**->very Explosive Athlete
-Jump = k \cdot (\frac{1RM}{Bodyweight})
+
 
 ## 🛠️ Tech Stack & Requirements:
 - **Language:** Python 3.x
